@@ -7,7 +7,7 @@ Created on Sun Oct 18 08:47:18 2020
 """
 
 import tensorflow as tf
-
+import tqdm
 import IPython.display as display
 
 import matplotlib.pyplot as plt
@@ -30,8 +30,9 @@ def tensor_to_image(tensor):
 
 
 #content_path = tf.keras.utils.get_file('YellowLabradorLooking_new.jpg', 'https://storage.googleapis.com/download.tensorflow.org/example_images/YellowLabradorLooking_new.jpg')
-style_path = tf.keras.utils.get_file('kandinsky5.jpg','https://storage.googleapis.com/download.tensorflow.org/example_images/Vassily_Kandinsky%2C_1913_-_Composition_7.jpg')
-content_path="testimg.jpg"
+#style_path = tf.keras.utils.get_file('kandinsky5.jpg','https://storage.googleapis.com/download.tensorflow.org/example_images/Vassily_Kandinsky%2C_1913_-_Composition_7.jpg')
+content_path="content_img1.jpg"
+style_path="style_img3_picasso.jpg"
 def load_img(path_to_img):
   max_dim = 512
   img = tf.io.read_file(path_to_img)
@@ -47,6 +48,13 @@ def load_img(path_to_img):
   img = tf.image.resize(img, new_shape)
   img = img[tf.newaxis, :]
   return img
+
+
+def save_img(path_to_file,img):
+    enc = tf.image.encode_jpeg(img)
+    fwrite = tf.io.write_file(path_to_file, enc)
+    
+
 
 def imshow(image, title=None):
   if len(image.shape) > 3:
@@ -206,17 +214,20 @@ def style_content_loss(outputs):
                              for name in content_outputs.keys()])
     content_loss *= content_weight / num_content_layers
     loss = style_loss + content_loss
-    return loss
+    return loss ,style_loss,content_loss
 
 @tf.function()
 def train_step(image):
   with tf.GradientTape() as tape:
     outputs = extractor(image)
-    loss = style_content_loss(outputs)
+    loss ,style,content= style_content_loss(outputs)
 
   grad = tape.gradient(loss, image)
   opt.apply_gradients([(grad, image)])
   image.assign(clip_0_1(image))
+  return loss ,style,content
+         
+    
 
 train_step(image)
 train_step(image)
@@ -226,18 +237,23 @@ tensor_to_image(image)
 import time
 start = time.time()
 
-epochs = 10
-steps_per_epoch = 100
+epochs = 1
+steps_per_epoch = 10
 
-step=0
+#adding tqdm training pipe for better analysing loss 
+#adding command to save img from PIL image object
 for n in range(epochs):
-  for m in range(steps_per_epoch):
-    step += 1
-    train_step(image)
-    print(".", end='')
+  with tqdm.tqdm(total=steps_per_epoch) as t:
+    for m in range(steps_per_epoch):
+        loss,style,content=train_step(image)
+        t.set_description('epoch {:03d}  Loss: {:.3f} Style_Loss: {:.3f} Content_Loss: {:.3f}'.format(
+                                    epochs,loss,style,content))
+        t.update(1)
   display.clear_output(wait=True)
   display.display(tensor_to_image(image))
-  print("Train step: {}".format(step))
+  tensor_to_image(image).save("converted_img_test.jpg")
+  
+  
   
 end = time.time()
 print("Total time: {:.1f}".format(end-start))
