@@ -1,2 +1,2 @@
 # Neural-style-transfer-
-Repo for experimenting with TF based neural style transfer
+Repo for experimenting the style agnostic nature of image captioning systems. The experiment tries to see if changing the style of an image affects the image captioning ability. Next, can we compensate with adding style transferred images to training? first we try to build a TF based neural style transfer model followed by an image captioning model. First experiment tries to test image captionining model with style transferred images. Next different training techniques with style transferred images will be used for training the captionining model. 
